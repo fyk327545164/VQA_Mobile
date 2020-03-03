@@ -30,7 +30,7 @@ class ButtonState extends State<ButtonWidget> {
     
   Helper helper = Helper();
 
-  String mode = "audio";
+  String mode = "photo";
 
   FlutterAudioRecorder recorder;
   FlutterAudioRecorder recorder_q;
@@ -47,7 +47,7 @@ class ButtonState extends State<ButtonWidget> {
 
   String question = "Question";
   String answer = "Answer";
-
+  String text = "not recording";
   Widget imageDisplay;
 
   @override
@@ -72,7 +72,8 @@ class ButtonState extends State<ButtonWidget> {
               child: ConstrainedBox(constraints: BoxConstraints(minWidth: double.infinity),
                 child: Container(decoration: BoxDecoration(border: Border.all(color: Colors.transparent)),
                   child: Column(mainAxisSize: MainAxisSize.max,mainAxisAlignment: MainAxisAlignment.center,
-                    children:[ Icon(Icons.keyboard_voice, color:Theme.of(context).primaryColor, size:60)
+                    children:[ Icon(Icons.keyboard_voice, color:Theme.of(context).primaryColor, size:60),
+                              Text("$text")
                     ],
                   ) 
                 )
@@ -130,8 +131,9 @@ class ButtonState extends State<ButtonWidget> {
     io.sleep(Duration(seconds: 3));
     await _startRecording('null');
     await _stopRecording('null');
-    
     String response_text = await helper.audio2text(recording.path);
+    print("photo: $response_text");
+    await _prepare();
     String reponse_result = await helper.retakeOrNot(response_text);
     
     if(reponse_result == 'yes'){
@@ -215,46 +217,45 @@ class ButtonState extends State<ButtonWidget> {
   
   
   void _opt() async {
-
-
     switch (recording_q.status) {
       case RecordingStatus.Initialized:
         {
-          await _startRecording('question');
+          await _startRecording("question");
           break;
         }
       case RecordingStatus.Recording:
         {
           await _stopRecording("question");
-
+         
+          
           audioPath = recording_q.path;
-
+           _prepare_q();
           setState(() {
-            question = helper.audio2text(audioPath) as String;
+            helper.audio2text(audioPath).then((value)=>question = value);
           });
 
           await helper.playAudioConfirmationAudio();
+          await _prepare();
           io.sleep(Duration(seconds: 3));
           await _startRecording('null');
           await _stopRecording('null');
-
+          print("Question: $audioPath   Conf: ${recording.path}");
           String response_text = await helper.audio2text(recording.path);
+          await _prepare();
+          print("response: $response_text");
           
           String reponse_result = await helper.retakeOrNot(response_text);
-
-            if(reponse_result == 'yes'){
-              setState(() {
-                mode = 'audio';
-              });
-
-            }else{
+          if(reponse_result == 'yes'){
+            setState(() {
+              mode = 'audio';
+            });
+          }else{
               await helper.playSendConfirmationAudio();
               io.sleep(Duration(seconds: 2));
               await _startRecording('null');
               await _stopRecording('null');
-
               String response_text = await helper.audio2text(recording.path);
-          
+              await _prepare();
               String reponse_result = await helper.retakeOrNot(response_text);
 
               if(reponse_result == 'yes'){
@@ -278,7 +279,10 @@ class ButtonState extends State<ButtonWidget> {
   }
   
   Future _startRecording(String m) async {
-    if(m=='question'){
+    setState(() {
+            text = "recording";
+      });
+    if(m=="question"){
       await recorder_q.start();
       var current = await recorder_q.current();
       setState(() {
@@ -295,6 +299,9 @@ class ButtonState extends State<ButtonWidget> {
   }
 
   Future _stopRecording(String m) async {
+    setState(() {
+            text = "not recording";
+    });
     if(m=='question'){
       var result = await recorder_q.stop();
       // await _play();
