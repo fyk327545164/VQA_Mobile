@@ -132,20 +132,30 @@ class ButtonState extends State<ButtonWidget> {
     await _startRecording('null');
     await _stopRecording('null');
     String response_text = await helper.audio2text(recording.path);
-    print("photo: $response_text");
     await _prepare();
-    String reponse_result = await helper.retakeOrNot(response_text);
-    
-    if(reponse_result == 'yes'){
-      setState((){
-        mode = 'photo';
+
+    if(response_text == 'not clear'){
+      setState(() {
+        helper.playUnclearAudio();
+        io.sleep(Duration(seconds: 2));
         helper.playPhotoPrompt();
+        mode = 'photo';
       });
     }else{
-      setState((){
-        mode = 'audio';
-        helper.playAudioPrompt();
-      });
+      print("photo: $response_text");
+      String reponse_result = await helper.retakeOrNot(response_text);
+      
+      if(reponse_result == 'yes'){
+        setState((){
+          mode = 'photo';
+          helper.playPhotoPrompt();
+        });
+      }else{
+        setState((){
+          mode = 'audio';
+          helper.playAudioPrompt();
+        });
+      }
     }
   }
 
@@ -226,10 +236,10 @@ class ButtonState extends State<ButtonWidget> {
       case RecordingStatus.Recording:
         {
           await _stopRecording("question");
-         
-          
+
           audioPath = recording_q.path;
-           _prepare_q();
+
+          _prepare_q();
           setState(() {
             helper.audio2text(audioPath).then((value)=>question = value);
           });
@@ -239,23 +249,48 @@ class ButtonState extends State<ButtonWidget> {
           io.sleep(Duration(seconds: 3));
           await _startRecording('null');
           await _stopRecording('null');
-          print("Question: $audioPath   Conf: ${recording.path}");
+
+          // print("Question: $audioPath   Conf: ${recording.path}");
           String response_text = await helper.audio2text(recording.path);
           await _prepare();
-          print("response: $response_text");
+
+          if(response_text == 'not clear'){
+            setState(() {
+              helper.playUnclearAudio();
+              io.sleep(Duration(seconds: 2));
+              helper.playAudioPrompt();
+              mode = 'audio';
+            });
+            break;
+          }
+          // print("response: $response_text");
           
           String reponse_result = await helper.retakeOrNot(response_text);
           if(reponse_result == 'yes'){
             setState(() {
               mode = 'audio';
+              helper.playAudioPrompt();
             });
           }else{
               await helper.playSendConfirmationAudio();
               io.sleep(Duration(seconds: 2));
               await _startRecording('null');
               await _stopRecording('null');
+
               String response_text = await helper.audio2text(recording.path);
               await _prepare();
+
+              while(response_text == 'not clear'){
+                helper.playUnclearAudio();
+                io.sleep(Duration(seconds: 2));
+                await helper.playSendConfirmationAudio();
+                io.sleep(Duration(seconds: 2));
+                await _startRecording('null');
+                await _stopRecording('null');
+                String response_text = await helper.audio2text(recording.path);
+                await _prepare();
+              }
+
               String reponse_result = await helper.retakeOrNot(response_text);
 
               if(reponse_result == 'yes'){
