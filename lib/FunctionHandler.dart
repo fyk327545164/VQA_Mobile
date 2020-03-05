@@ -13,7 +13,7 @@ class Helper{
     return 'Basic ' + base64Encode(utf8.encode('apikey:$apikey'));
   }
 
-  String backend_url = "http://aa21cc99.ngrok.io";
+  String backend_url = "http://c092aec0.ngrok.io";
 
   String assistant_url = "https://api.us-south.assistant.watson.cloud.ibm.com/instances/40d4daac-3ebb-4208-92bc-d35fd7d9766b/v1/workspaces/0eb6a96f-9a22-4fe6-8ccd-4954b73cced6/message?version=2020-02-05";
   String assistant_key = "6lMZ90JznaEro75XVOYlZeTBW_1hxQX8c7p3FPDpnnKC";
@@ -26,7 +26,7 @@ class Helper{
       'Content-Type':"application/json"})
     );
 
-    String result = "yes";
+    String result = "no";
     if(response.data['entities'].length>0){
       result = response.data['entities'][0]['entity'];
     }
@@ -69,16 +69,17 @@ class Helper{
       "audio_file" : audio_file
     });
 
-    Response re = await Dio().post(
-      backend_url+"/speech2text",
-      data:formData,
-      options: Options(responseType: ResponseType.plain)
-    );
+    Response re;
     String audio_text;
-    if(re.statusCode != 200){
-      audio_text = "not clear";
-    }else{
+    try{
+      re = await Dio().post(
+        backend_url+"/speech2text",
+        data:formData,
+        options: Options(responseType: ResponseType.plain)
+      );
       audio_text = re.data;
+    }catch(e){
+      audio_text = "not clear";
     }
 
     return audio_text;

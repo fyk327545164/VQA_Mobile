@@ -38,7 +38,6 @@ class ButtonState extends State<ButtonWidget> {
   Recording recording;
   Recording recording_q;
 
-  String _alert = "";
   CameraController _controller;
   Future<void> _initializeControllerFuture;
 
@@ -47,8 +46,9 @@ class ButtonState extends State<ButtonWidget> {
 
   String question = "Question";
   String answer = "Answer";
-  String text = "not recording";
   Widget imageDisplay;
+
+  String text = "not recording";
 
   @override
   Widget build(BuildContext context) {
@@ -117,6 +117,7 @@ class ButtonState extends State<ButtonWidget> {
     
     await _initializeControllerFuture;
     final path = join((await getTemporaryDirectory()).path,'${DateTime.now()}.png',);
+
     await _controller.takePicture(path).then((_){
         setState((){
           imagePath = path;
@@ -127,22 +128,24 @@ class ButtonState extends State<ButtonWidget> {
     );
 
     await helper.playPhotoConfirmationAudio();
-    
     io.sleep(Duration(seconds: 3));
+
     await _startRecording('null');
     await _stopRecording('null');
+
     String response_text = await helper.audio2text(recording.path);
+
     await _prepare();
 
     if(response_text == 'not clear'){
+      helper.playUnclearAudio();
+      io.sleep(Duration(seconds: 2));
+      helper.playPhotoPrompt();
       setState(() {
-        helper.playUnclearAudio();
-        io.sleep(Duration(seconds: 2));
-        helper.playPhotoPrompt();
         mode = 'photo';
       });
     }else{
-      print("photo: $response_text");
+
       String reponse_result = await helper.retakeOrNot(response_text);
       
       if(reponse_result == 'yes'){
@@ -240,6 +243,7 @@ class ButtonState extends State<ButtonWidget> {
           audioPath = recording_q.path;
 
           _prepare_q();
+
           setState(() {
             helper.audio2text(audioPath).then((value)=>question = value);
           });
@@ -250,21 +254,19 @@ class ButtonState extends State<ButtonWidget> {
           await _startRecording('null');
           await _stopRecording('null');
 
-          // print("Question: $audioPath   Conf: ${recording.path}");
           String response_text = await helper.audio2text(recording.path);
           await _prepare();
 
           if(response_text == 'not clear'){
+            helper.playUnclearAudio();
+            io.sleep(Duration(seconds: 2));
+            helper.playAudioPrompt();
             setState(() {
-              helper.playUnclearAudio();
-              io.sleep(Duration(seconds: 2));
-              helper.playAudioPrompt();
               mode = 'audio';
             });
             break;
           }
-          // print("response: $response_text");
-          
+
           String reponse_result = await helper.retakeOrNot(response_text);
           if(reponse_result == 'yes'){
             setState(() {
@@ -272,40 +274,46 @@ class ButtonState extends State<ButtonWidget> {
               helper.playAudioPrompt();
             });
           }else{
-              await helper.playSendConfirmationAudio();
-              io.sleep(Duration(seconds: 2));
-              await _startRecording('null');
-              await _stopRecording('null');
+            await helper.playSendConfirmationAudio();
+            // io.sleep(Duration(seconds: 2));
+            // await _startRecording('null');
+            // await _stopRecording('null');
 
-              String response_text = await helper.audio2text(recording.path);
-              await _prepare();
+            // String response_text = await helper.audio2text(recording.path);
+            // await _prepare();
 
-              while(response_text == 'not clear'){
-                helper.playUnclearAudio();
-                io.sleep(Duration(seconds: 2));
-                await helper.playSendConfirmationAudio();
-                io.sleep(Duration(seconds: 2));
-                await _startRecording('null');
-                await _stopRecording('null');
-                String response_text = await helper.audio2text(recording.path);
-                await _prepare();
-              }
+            // while(response_text == 'not clear'){
+            //   helper.playUnclearAudio();
+            //   io.sleep(Duration(seconds: 2));
+            //   await helper.playSendConfirmationAudio();
+            //   io.sleep(Duration(seconds: 2));
+            //   await _startRecording('null');
+            //   await _stopRecording('null');
+            //   String response_text = await helper.audio2text(recording.path);
+            //   await _prepare();
+            // }
 
-              String reponse_result = await helper.retakeOrNot(response_text);
+            // String reponse_result = await helper.retakeOrNot(response_text);
 
-              if(reponse_result == 'yes'){
-                String a = await helper.get_answer(audioPath, imagePath);
-                setState(() {
-                  answer = a;
-                });
+            // if(reponse_result == 'yes'){
+            //   String a = await helper.get_answer(audioPath, imagePath);
+            //   setState(() {
+            //     answer = a;
+            //   });
                 
-                io.sleep(Duration(seconds: 3));
-              }
-              setState((){
-                mode = 'photo';
-                helper.playPhotoPrompt();
-              });
-            }  
+            //   io.sleep(Duration(seconds: 3));
+            // }
+            String a = await helper.get_answer(audioPath, imagePath);
+            setState(() {
+                answer = a;
+            });
+            io.sleep(Duration(seconds: 5));
+            
+            setState((){
+              mode = 'photo';
+              helper.playPhotoPrompt();
+            });
+          }  
           break;
         }
       default:
@@ -315,8 +323,8 @@ class ButtonState extends State<ButtonWidget> {
   
   Future _startRecording(String m) async {
     setState(() {
-            text = "recording";
-      });
+      text = "recording";
+    });
     if(m=="question"){
       await recorder_q.start();
       var current = await recorder_q.current();
@@ -335,7 +343,7 @@ class ButtonState extends State<ButtonWidget> {
 
   Future _stopRecording(String m) async {
     setState(() {
-            text = "not recording";
+      text = "not recording";
     });
     if(m=='question'){
       var result = await recorder_q.stop();
