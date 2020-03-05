@@ -36,7 +36,7 @@ class Helper{
   }
 
   playUnclearAudio() {
-    text2audio("Does not hear what you said");
+    text2audio("Your voice is not clear, please try again");
   }
   
   playPhotoConfirmationAudio() {

@@ -139,7 +139,7 @@ class ButtonState extends State<ButtonWidget> {
 
     if(response_text == 'not clear'){
       helper.playUnclearAudio();
-      io.sleep(Duration(seconds: 2));
+      io.sleep(Duration(seconds: 3));
       helper.playPhotoPrompt();
       setState(() {
         mode = 'photo';
@@ -259,7 +259,7 @@ class ButtonState extends State<ButtonWidget> {
 
           if(response_text == 'not clear'){
             helper.playUnclearAudio();
-            io.sleep(Duration(seconds: 2));
+            io.sleep(Duration(seconds: 3));
             helper.playAudioPrompt();
             setState(() {
               mode = 'audio';
@@ -308,7 +308,7 @@ class ButtonState extends State<ButtonWidget> {
                 answer = a;
             });
             io.sleep(Duration(seconds: 5));
-            
+
             setState((){
               mode = 'photo';
               helper.playPhotoPrompt();
