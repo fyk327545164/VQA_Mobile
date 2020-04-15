@@ -14,6 +14,22 @@ import 'CameraWidget.dart';
 import 'MessageWidget.dart';
 
 
+class QASectionWidget extends StatefulWidget{
+  @override
+  QASectionState createState() => QASectionState();
+}
+class QASectionState extends State<QASectionWidget>{
+  @override
+  Widget build(BuildContext context) {
+    
+    return GestureDetector(
+      child:Center(
+        child:Text('Your Questions:')
+      )
+    );
+  }
+}
+
 class ButtonWidget extends StatefulWidget{
   @override
   ButtonState createState() => ButtonState();
@@ -25,35 +41,43 @@ class ButtonWidget extends StatefulWidget{
     @required this.camera,
   }) : super(key: key);
 }
+enum recording_status  {
+    Initialized,
+    Recording
+}
+enum recording_type {
+    Question,
+    Confirmation
+}
 
 class ButtonState extends State<ButtonWidget> {
+
+  String imagePath;
+  var recorder_status;
+  // CameraWidget camState = CameraWi/dget();
     
   Helper helper = Helper();
 
   String mode = "photo";
 
   FlutterAudioRecorder recorder;
-  FlutterAudioRecorder recorder_q;
 
   Recording recording;
-  Recording recording_q;
-
+  String _alert = "";
+  String text = "not recording";
   CameraController _controller;
   Future<void> _initializeControllerFuture;
-
-  String imagePath;
-  String audioPath;
-
-  String question = "Question";
+  String question = "Your question";
   String answer = "Answer";
+  // String imagePath;
+  String audioPath;
+  var current_type;
   Widget imageDisplay;
-
-  String text = "not recording";
-
+  
   @override
   Widget build(BuildContext context) {
 
-    if(mode=='audio'){
+    if(mode=="audio"){
   
       return GestureDetector(
         child:Flex(direction: Axis.vertical, children:<Widget>[
@@ -73,7 +97,7 @@ class ButtonState extends State<ButtonWidget> {
                 child: Container(decoration: BoxDecoration(border: Border.all(color: Colors.transparent)),
                   child: Column(mainAxisSize: MainAxisSize.max,mainAxisAlignment: MainAxisAlignment.center,
                     children:[ Icon(Icons.keyboard_voice, color:Theme.of(context).primaryColor, size:60),
-                              Text("$text")
+                    Text("$text")
                     ],
                   ) 
                 )
@@ -117,75 +141,77 @@ class ButtonState extends State<ButtonWidget> {
     
     await _initializeControllerFuture;
     final path = join((await getTemporaryDirectory()).path,'${DateTime.now()}.png',);
-
-    await _controller.takePicture(path).then((_){
-        setState((){
-          imagePath = path;
-          question = "Question";
-          answer = "Answer";
-        });
-      }
-    );
-
+    await _controller.takePicture(path).then((_)=> imagePath = path);//.then((_)=> switchToImageDisplay(imagePath));
+    
+    // await _startRecording();
+    // await _stopRecording();
+    // print("1111111:   "+recording.path);
+    // await _prepare();
+    // await _startRecording();
+    // await _stopRecording();
+    // print("2222222:   "+recording.path);
     await helper.playPhotoConfirmationAudio();
+    
     io.sleep(Duration(seconds: 3));
-
-    await _startRecording('null');
-    await _stopRecording('null');
-
+    await _startRecording(true);
+    await _stopRecording();
+    // await _play();
+    
     String response_text = await helper.audio2text(recording.path);
-
+    String reponse_result = await helper.retakeOrNot(response_text);
     await _prepare();
-
-    if(response_text == 'not clear'){
-      helper.playUnclearAudio();
-      io.sleep(Duration(seconds: 3));
-      helper.playPhotoPrompt();
-      setState(() {
-        mode = 'photo';
+    if(reponse_result == "yes"){
+      
+      setState((){
+        mode = "photo";
+        helper.playPhotoPrompt();
       });
     }else{
-
-      String reponse_result = await helper.retakeOrNot(response_text);
-      
-      if(reponse_result == 'yes'){
-        setState((){
-          mode = 'photo';
-          helper.playPhotoPrompt();
-        });
-      }else{
-        setState((){
-          mode = 'audio';
-          helper.playAudioPrompt();
-        });
-      }
-    }
-  }
-
-  Future _prepare_q() async{
-
-    var hasPermission = await FlutterAudioRecorder.hasPermissions;
-    if (hasPermission) {
-      String customPath = '/flutter_audio_recorderq_';
-      io.Directory appDocDirectory;
-      if (io.Platform.isIOS) {
-        appDocDirectory = await getApplicationDocumentsDirectory();
-      } else {
-        appDocDirectory = await getExternalStorageDirectory();
-      }
-      customPath = appDocDirectory.path +
-          customPath +
-          DateTime.now().millisecondsSinceEpoch.toString();
-
-      recorder_q = FlutterAudioRecorder(customPath, audioFormat: AudioFormat.WAV, sampleRate: 22050);
-      await recorder_q.initialized;
-
-      var result = await recorder_q.current();
-      setState(() {
-        recording_q = result;
+      setState((){
+        mode = "audio";
+        helper.playAudioPrompt();
       });
     }
   }
+    
+  // switchToImageDisplay(String p) async{
+  //   setState(() {q
+  //     camState.imagePath = imagePath;
+  //   });
+  //   // setState((){
+  //   //   camWidget. = GestureDetector(
+  //   //     child: imagePath==null?Center(
+  //   //       child:Icon(Icons.camera_alt,color:Theme.of(context).primaryColor,size:30)
+  //   //     ):Image.file(io.File(imagePath))
+  //   //   );
+  //   // });
+  // }
+
+  // Future _prepare_q() async{
+  //   // helper.playAudioPrompt();
+
+  //   var hasPermission = await FlutterAudioRecorder.hasPermissions;
+  //   if (hasPermission) {
+  //     String customPath = "/flutter_audio_recorderq_";
+  //     io.Directory appDocDirectory;
+  //     if (io.Platform.isIOS) {
+  //       appDocDirectory = await getApplicationDocumentsDirectory();
+  //     } else {
+  //       appDocDirectory = await getExternalStorageDirectory();
+  //     }
+  //     customPath = appDocDirectory.path +
+  //         customPath +
+  //         DateTime.now().millisecondsSinceEpoch.toString();
+
+  //     recorder_q = FlutterAudioRecorder(customPath, audioFormat: AudioFormat.WAV, sampleRate: 22050);      
+  //     await recorder_q.initialized;
+
+  //     var result = await recorder_q.current();
+  //     setState(() {
+  //       recording_q = result;
+  //     });
+  //   }
+  // }
 
   Future _prepare() async{
     var hasPermission = await FlutterAudioRecorder.hasPermissions;
@@ -212,14 +238,13 @@ class ButtonState extends State<ButtonWidget> {
   
   @override
   void initState() {
-
+    recorder_status = recording_status.Initialized;
+    current_type = recording_type.Confirmation;
     helper.playPhotoPrompt();
 
     super.initState();
-
-    _prepare_q();
     _prepare();
-
+    
     _controller = CameraController(
       widget.camera,
       ResolutionPreset.medium,
@@ -230,90 +255,78 @@ class ButtonState extends State<ButtonWidget> {
   
   
   void _opt() async {
-    switch (recording_q.status) {
-      case RecordingStatus.Initialized:
+    switch (recorder_status) {
+      case recording_status.Initialized:
         {
-          await _startRecording("question");
+          await _startRecording(false);
+          recorder_status = recording_status.Recording;
+          
           break;
         }
-      case RecordingStatus.Recording:
+      case recording_status.Recording:
         {
-          await _stopRecording("question");
-
-          audioPath = recording_q.path;
-
-          _prepare_q();
-
-          setState(() {
-            helper.audio2text(audioPath).then((value)=>question = value);
-          });
-
+          await _stopRecording();
+          recorder_status = recording_status.Initialized;
+          audioPath = recording.path;
+          await _prepare();
           await helper.playAudioConfirmationAudio();
-          await _prepare();
           io.sleep(Duration(seconds: 3));
-          await _startRecording('null');
-          await _stopRecording('null');
-
-          String response_text = await helper.audio2text(recording.path);
+          await _startRecording(true);
+          await _stopRecording();
           await _prepare();
-
-          if(response_text == 'not clear'){
-            helper.playUnclearAudio();
-            io.sleep(Duration(seconds: 3));
-            helper.playAudioPrompt();
-            setState(() {
-              mode = 'audio';
-            });
-            break;
-          }
-
+          String response_text = await helper.audio2text(recording.path);
+          
           String reponse_result = await helper.retakeOrNot(response_text);
-          if(reponse_result == 'yes'){
-            setState(() {
-              mode = 'audio';
-              helper.playAudioPrompt();
-            });
-          }else{
-            await helper.playSendConfirmationAudio();
-            // io.sleep(Duration(seconds: 2));
-            // await _startRecording('null');
-            // await _stopRecording('null');
+          print(reponse_result);
+            if(reponse_result == "yes"){
+              setState(() {
+                mode = "audio";
+              });
+            }else{
+              await helper.playSendConfirmationAudio();
+              io.sleep(Duration(seconds: 2));
+              await _startRecording(true);
+              await _stopRecording();
+              // await _play();
 
-            // String response_text = await helper.audio2text(recording.path);
-            // await _prepare();
+              String response_text = await helper.audio2text(recording.path);
+              print("Ready to Send: "+response_text);
+              String reponse_result = await helper.retakeOrNot(response_text);
+              String tmp_q = "Your question";
+              String tmp_a = "Answer";
+              if(reponse_result == 'yes'){
+                tmp_a = await helper.get_answer(audioPath, imagePath);
+                tmp_q = await helper.audio2text(audioPath);
+              }
+              await _prepare();
 
-            // while(response_text == 'not clear'){
-            //   helper.playUnclearAudio();
-            //   io.sleep(Duration(seconds: 2));
-            //   await helper.playSendConfirmationAudio();
-            //   io.sleep(Duration(seconds: 2));
-            //   await _startRecording('null');
-            //   await _stopRecording('null');
-            //   String response_text = await helper.audio2text(recording.path);
-            //   await _prepare();
-            // }
-
-            // String reponse_result = await helper.retakeOrNot(response_text);
-
-            // if(reponse_result == 'yes'){
-            //   String a = await helper.get_answer(audioPath, imagePath);
-            //   setState(() {
-            //     answer = a;
-            //   });
-                
-            //   io.sleep(Duration(seconds: 3));
-            // }
-            String a = await helper.get_answer(audioPath, imagePath);
-            setState(() {
-                answer = a;
-            });
-            io.sleep(Duration(seconds: 5));
-
-            setState((){
-              mode = 'photo';
-              helper.playPhotoPrompt();
-            });
-          }  
+              await helper.playAskAgainConfirmationAudio();
+              io.sleep(Duration(seconds: 2));
+              await _startRecording(true);
+              await _stopRecording();
+              String confirmation_text = await helper.audio2text(recording.path);
+              String confirmation_res = await helper.retakeOrNot(confirmation_text);
+              print("Bool:     ");
+              print(confirmation_res == "yes");
+              print(confirmation_res == 'yes');
+              await _prepare();
+              if(confirmation_res == "yes"){
+                print("Helloooooooo");
+                  setState((){
+                    question = tmp_q;
+                    answer = tmp_a;
+                    mode = 'audio';
+                });
+              }else{
+                setState((){
+                  question = tmp_q;
+                  answer = tmp_a;
+                  mode = 'photo';
+                  helper.playPhotoPrompt();
+                });
+              }
+            }
+           
           break;
         }
       default:
@@ -321,42 +334,23 @@ class ButtonState extends State<ButtonWidget> {
     }
   }
   
-  Future _startRecording(String m) async {
-    setState(() {
-      text = "recording";
-    });
-    if(m=="question"){
-      await recorder_q.start();
-      var current = await recorder_q.current();
-      setState(() {
-        recording_q = current;
-      });
-    }else{
+  Future _startRecording(bool needIdle) async {
+    //print(m=="question");
       await recorder.start();
       var current = await recorder.current();
       setState(() {
         recording = current;
+        text = "recording";
       });
-      io.sleep(Duration(seconds: 3));
-    }
+      if(needIdle) io.sleep(Duration(seconds: 3));
   }
 
-  Future _stopRecording(String m) async {
-    setState(() {
-      text = "not recording";
-    });
-    if(m=='question'){
-      var result = await recorder_q.stop();
-      // await _play();
-      setState(() {
-        recording_q = result;
-      });
-    }else{
+  Future _stopRecording() async {
       var result = await recorder.stop();
       setState(() {
         recording = result;
+        text = "not recording";
       });
-    }
   }
 
   Future<void> _play() async {
